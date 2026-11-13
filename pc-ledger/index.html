@@ -1,0 +1,1097 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>小卡帳本</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: sticky entry form on the left, month overview + stock + breakdowns + history on the right; one column on phones. White ground, lavender/blue/yellow palette from the user's swatch; single light theme by request. */
+:root{
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F1E9F5; --ink:#261F3F; --muted:#62597F; --line:#D3C6E3;
+  --buy:#9285C5; --on-buy:#1E1838; --buy-ink:#5F50A3; --buy-soft:#E5D9F1;
+  --sell:#86A3C8; --on-sell:#14243A; --sell-ink:#35547F; --sell-soft:#C0CFE1;
+  --cream-bg:#FAEFC7; --cream-ink:#4F4313;
+  --zero-bg:#FAFAFC; --zero-line:#EEEEF3; --zero-ink:#9C9CA8;
+  --btn:#FAEFC7; --btn-line:#DCC878; --on-btn:#3F3510;
+  --err:#B3261E; --on-err:#FFFFFF;
+  --focus:#4B3FA3;
+  --font-body:'Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+  --font-num:'Space Grotesk','Noto Sans TC',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.5}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.page{max-width:1040px;margin:0 auto;padding-block:14px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 12px;margin-bottom:12px}
+h1{margin:0;font-size:22px;line-height:1.2;letter-spacing:.01em;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:13px}
+.top-r{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block}
+.chip[data-s="cloud"] i{background:var(--sell)}
+.chip[data-s="slow"] i{background:var(--err)}
+.btn{min-height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--btn-line);background:var(--btn);color:var(--on-btn);cursor:pointer;font-size:13px;font-weight:500}
+.btn:hover{filter:brightness(.96)}
+.btn.link{border:0;background:none;min-height:32px;padding:0 6px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;font-weight:400}
+.btn.link:hover{color:var(--ink);background:none;filter:none}
+.grid{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);grid-template-areas:"summary" "form" "inventory" "monthly" "people" "history"}
+@media (min-width:900px){
+  .grid{grid-template-columns:minmax(0,330px) minmax(0,1fr);grid-template-areas:"form summary" "form inventory" "form monthly" "form people" "form history";align-items:start}
+  #form-panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);max-height:calc(100vh - 32px);overflow-y:auto}
+}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+#summary{grid-area:summary}#form-panel{grid-area:form}#inventory{grid-area:inventory}#monthly{grid-area:monthly}#people{grid-area:people}#history{grid-area:history}
+h2{margin:0;font-size:15px;line-height:1.3}
+.head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;margin-bottom:10px}
+label.f,.lbl{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+select,input[type=text],input[type=number],input[type=date],input[type=search]{width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:16px}
+select{width:auto;min-width:8.5rem}
+input::placeholder{color:var(--muted);opacity:.75}
+.tiles{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(128px,1fr))}
+.tile{background:var(--surface-2);border-radius:8px;padding:8px 10px;min-width:0}
+.tile .k{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.tile .k b{width:8px;height:8px;border-radius:2px;display:inline-block}
+.tile .v{font-size:19px;font-weight:700;line-height:1.25;margin-top:2px;overflow-wrap:anywhere}
+.tile .s{font-size:11px;color:var(--muted);margin-top:1px}
+.stock-tile{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+.pos{color:var(--sell-ink)}.neg{color:var(--buy-ink)}
+form{display:grid;gap:10px}
+#lines{display:grid;gap:8px}
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:10px;padding:3px;gap:3px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{display:flex;align-items:center;justify-content:center;min-height:36px;border-radius:8px;cursor:pointer;font-weight:500;color:var(--muted)}
+.seg input:checked + label{background:var(--mode);color:var(--on-mode)}
+.seg input:focus-visible + label{outline:2px solid var(--focus);outline-offset:2px}
+.seg-ct{grid-template-columns:repeat(3,1fr)}
+.seg-ct input:checked + label{background:var(--btn);color:var(--on-btn);box-shadow:inset 0 0 0 1px var(--btn-line);font-weight:700}
+form[data-mode="buy"]{--mode:var(--buy);--on-mode:var(--on-buy)}
+form[data-mode="sell"]{--mode:var(--sell);--on-mode:var(--on-sell)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.chips:empty{display:none}
+.chip-b{min-height:34px;min-width:40px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;font-size:14px}
+.chip-b[aria-pressed="true"]{background:var(--btn);color:var(--on-btn);border-color:var(--btn-line);font-weight:700}
+.line{border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:8px;background:var(--surface);min-width:0}
+.line-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.line-acts{display:flex;gap:2px}
+.line .hint{margin:6px 0 0}
+.line .line-hint{margin:0}
+.mem-area:empty{display:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.submit{min-height:42px;border-radius:8px;border:1px solid var(--btn-line);background:var(--btn);color:var(--on-btn);font-weight:700;font-size:16px;cursor:pointer}
+.submit:hover:not(:disabled){filter:brightness(.96)}
+.submit:disabled{opacity:.55;cursor:default}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.chk{display:flex;align-items:center;gap:8px;min-height:36px;font-size:14px;cursor:pointer}
+.chk input{width:22px;height:22px;accent-color:#9285C5;flex:none}
+#msg{min-height:1.4em;font-size:13px;margin:12px 0 0}
+#msg.err{color:var(--err)}
+.mem-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(44px,1fr));gap:5px}
+.mem-sum > div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 3px;text-align:center;min-width:0}
+.mem-sum .nm{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.mem-sum .ct{font-size:17px;font-weight:700;line-height:1.2}
+.mem-sum .ct.zero{color:var(--muted)}
+.mem-sum .mk{font-size:10px;line-height:1.25;color:var(--muted);margin-top:1px;white-space:nowrap}
+.mem-sum .mk.mid{font-weight:700;color:var(--ink)}
+.mem-sum > div.is0 .mk.mid{color:var(--zero-ink)}
+.mem-sum > div.is0 .mk{color:var(--zero-ink)}
+.mem-sum > div.is0{background:var(--zero-bg);border-color:var(--zero-line)}
+.mem-sum > div.is0 .nm,.mem-sum > div.is0 .ct{color:var(--zero-ink)}
+.mem-sum > div.over{border-color:var(--err);color:var(--err)}
+.mem-sum > div.over .nm{color:var(--err)}
+.ver-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ver{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:7px;min-width:0}
+.ver-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.ver-name{font-weight:700;font-size:15px;overflow-wrap:anywhere}
+.ver-sub{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.ver > summary{list-style:none;cursor:pointer;display:grid;gap:6px;min-height:44px}
+.ver > summary::-webkit-details-marker{display:none}
+.ver > summary .ver-head{align-items:center}
+.ver .chev{display:inline-block;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin:0 4px 2px 2px;flex:none}
+.ver[open] .chev{transform:rotate(45deg)}
+.ver .ver-body{display:grid;gap:7px;margin-top:7px;padding-top:8px;border-top:1px solid var(--line)}
+.ver > summary:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:6px}
+.ver-total{text-align:right;white-space:nowrap;line-height:1.1}
+.ver-total .n{font-size:20px;font-weight:700}
+.ver-total .u.val{color:var(--ink);font-weight:700;margin-top:2px}
+.ver-total .u{font-size:11px;color:var(--muted);display:block}
+.badge-cream{display:inline-block;font-size:12px;font-weight:700;background:var(--cream-bg);color:var(--cream-ink);border-radius:6px;padding:1px 7px;justify-self:start}
+.chan{display:grid;gap:1px;padding:7px 0;border-top:1px solid var(--line)}
+.chan:first-child{border-top:0}
+.chan .p-top .nums{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.inv-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px}
+.inv-tools label{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+.inv-tools input[type=checkbox]{width:18px;height:18px;accent-color:#9285C5}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend b{width:10px;height:10px;border-radius:2px;display:inline-block}
+.mlist,.plist,.rows{list-style:none;margin:0;padding:0}
+.mlist{display:grid;gap:6px}
+.mrow{width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;cursor:pointer;display:grid;gap:4px}
+.mrow:hover{background:var(--surface-2)}
+.mrow[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--ink);border-color:transparent}
+.m-head{display:flex;justify-content:space-between;gap:10px;font-weight:500}
+.m-head .num{font-size:14px}
+.bline{display:grid;grid-template-columns:minmax(0,1fr) 7rem;align-items:center;gap:10px}
+.track{height:6px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.bar{height:100%;border-radius:4px;min-width:0}
+.bar.buy{background:var(--buy)}.bar.sell{background:var(--sell)}
+.bline .num{font-size:13px;text-align:right;color:var(--muted)}
+.cols{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:640px){.cols{grid-template-columns:1fr 1fr}}
+.cols h3{margin:0 0 8px;font-size:14px;color:var(--muted);font-weight:500}
+.plist{display:grid;gap:8px}
+.p-top{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.p-top span:first-child{overflow-wrap:anywhere;min-width:0}
+.p-sub{font-size:12px;color:var(--muted)}
+.share{height:4px;background:var(--surface-2);border-radius:2px;margin-top:4px;overflow:hidden}
+.share div{height:100%}
+.share .buy{background:var(--buy)}.share .sell{background:var(--sell)}
+.empty{color:var(--muted);font-size:14px;margin:4px 0}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.filters input[type=search]{flex:1 1 160px;min-width:0}
+.filters select{min-width:7rem}
+.rows{display:grid}
+.row{display:grid;grid-template-columns:2.8rem minmax(0,1fr) auto;gap:1px 8px;padding:8px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.r-date{font-size:13px;color:var(--muted);padding-top:2px}
+.r-main{min-width:0;display:grid;gap:3px}
+.r-item{font-weight:500;overflow-wrap:anywhere}
+.r-sub{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.r-amt{font-size:15px;font-weight:700;text-align:right;white-space:nowrap}
+.r-amt.buy{color:var(--buy-ink)}.r-amt.sell{color:var(--sell-ink)}
+.r-act{grid-column:2 / -1;display:flex;gap:4px 6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.stat-b{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:0 10px;border-radius:999px;border:1px dashed var(--muted);background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer}
+.stat-b::before{content:"";width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor;box-sizing:border-box;flex:none}
+.stat-b[aria-pressed="true"]{border:1px solid var(--btn-line);background:var(--btn);color:var(--on-btn);font-weight:700}
+.stat-b[aria-pressed="true"]::before{background:currentColor;box-shadow:inset 0 0 0 2px var(--btn)}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 7px;border-radius:5px;margin-right:6px;vertical-align:1px}
+.tag.buy{background:var(--buy-soft);color:var(--buy-ink)}
+.tag.sell{background:var(--sell-soft);color:var(--sell-ink)}
+.tag.solo,.tag.grp{background:var(--surface-2);color:var(--ink);font-weight:500}
+.tag.ex{background:var(--cream-bg);color:var(--cream-ink);font-weight:500}
+.confirm{font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.btn.danger{background:var(--err);border-color:var(--err);color:var(--on-err);min-height:32px;padding:0 10px;font-size:13px}
+.btn.sm{min-height:32px;padding:0 10px;font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <h1>小卡帳本</h1>
+      <p class="sub">記錄跟誰買、賣給誰、花了多少，並統計每個月的花費。</p>
+    </div>
+    <div class="top-r">
+      <span class="chip" id="status" data-s="pending"><i></i><span>連線中…</span></span>
+      <button class="btn" id="export" type="button">匯出 CSV</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" id="summary" aria-labelledby="sum-h">
+      <div class="head">
+        <h2 id="sum-h">月份總覽</h2>
+        <select id="month-sel" aria-label="檢視月份"></select>
+      </div>
+      <div class="tiles" id="tiles"></div>
+    </section>
+
+    <section class="panel" id="form-panel" aria-labelledby="form-h">
+      <div class="head"><h2 id="form-h">新增紀錄</h2></div>
+      <form id="entry-form" data-mode="buy" autocomplete="off" novalidate>
+        <div class="seg" role="radiogroup" aria-label="類型">
+          <input type="radio" name="kind" id="k-buy" value="buy" checked><label for="k-buy">買入</label>
+          <input type="radio" name="kind" id="k-sell" value="sell"><label for="k-sell">賣出</label>
+        </div>
+        <div>
+          <label class="f" for="f-date">日期</label>
+          <input type="date" id="f-date" required>
+        </div>
+        <div>
+          <span class="lbl" id="ch-label">買賣渠道</span>
+          <div class="chips" id="channel-chips" role="group" aria-labelledby="ch-label"></div>
+          <input type="text" id="f-channel" placeholder="其他渠道可直接輸入" maxlength="40" aria-labelledby="ch-label">
+        </div>
+        <div>
+          <label class="f" for="f-party" id="party-label">賣家</label>
+          <input type="text" id="f-party" list="party-list" placeholder="例：KOCA 帳號、FB 名稱、LINE 暱稱" maxlength="60">
+          <datalist id="party-list"></datalist>
+        </div>
+
+        <div id="lines"></div>
+        <button class="btn" type="button" id="add-line">＋ 這筆還有另一種卡</button>
+        <datalist id="group-list"></datalist>
+        <datalist id="member-list"></datalist>
+        <datalist id="item-list"></datalist>
+        <datalist id="gname-list"></datalist>
+
+        <div class="two">
+          <div>
+            <label class="f" for="f-amount">卡片金額 (NT$)</label>
+            <input type="number" id="f-amount" min="0" step="1" inputmode="decimal" placeholder="0">
+          </div>
+          <div>
+            <label class="f" for="f-fee">包手費 (NT$)</label>
+            <input type="number" id="f-fee" min="0" step="1" inputmode="decimal" placeholder="0">
+          </div>
+        </div>
+        <div class="chips" style="margin:0">
+          <button type="button" class="chip-b" id="fee-chip" aria-pressed="false">包手 $20</button>
+        </div>
+        <div id="ship-wrap">
+          <label class="f" for="f-ship">運費 (NT$)</label>
+          <input type="number" id="f-ship" min="0" step="1" inputmode="decimal" placeholder="0">
+          <div class="chips" id="ship-chips" role="group" aria-label="運費快選" style="margin:8px 0 0">
+            <button type="button" class="chip-b" data-ship="38" aria-pressed="false">賣貨便 $38</button>
+            <button type="button" class="chip-b" data-ship="36" aria-pressed="false">全家 $36</button>
+          </div>
+        </div>
+        <p class="hint">卡片金額填這一筆所有卡的總價，不含包手費和運費。一筆有多種卡時，成本會依張數平均分攤。</p>
+        <p class="hint" id="tot-hint" aria-live="polite"></p>
+        <div>
+          <label class="f" for="f-note">備註（選填）</label>
+          <input type="text" id="f-note" placeholder="例：面交、7-11 店到店、含運" maxlength="120">
+        </div>
+        <div>
+          <label class="chk" for="f-done"><input type="checkbox" id="f-done"><span id="done-label">已收貨</span></label>
+          <p class="hint" id="done-hint"></p>
+        </div>
+        <button class="submit" id="submit" type="submit">新增買入</button>
+        <button class="btn" id="cancel-edit" type="button" hidden>取消編輯</button>
+      </form>
+      <p id="msg" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="inventory" aria-labelledby="inv-h">
+      <div class="head">
+        <h2 id="inv-h">庫存餘量</h2>
+        <span class="sub" style="margin:0">每個版本（卡面）分開算，累計所有月份</span>
+      </div>
+      <div class="inv-tools">
+        <label for="inv-only"><input type="checkbox" id="inv-only" checked>只顯示有庫存的版本</label>
+        <button type="button" class="btn link" id="inv-open">全部展開</button><button type="button" class="btn link" id="inv-close">全部收合</button>
+      </div>
+      <div id="inv-rows"></div>
+    </section>
+
+    <section class="panel" id="monthly" aria-labelledby="mon-h">
+      <div class="head">
+        <h2 id="mon-h">每月花費與收入</h2>
+        <div class="legend"><span><b style="background:var(--buy)"></b>買入花費</span><span><b style="background:var(--sell)"></b>賣出收入</span></div>
+      </div>
+      <div id="mlist"></div>
+    </section>
+
+    <section class="panel" id="people" aria-labelledby="ppl-h">
+      <div class="head"><h2 id="ppl-h">渠道、賣家與買家</h2><span class="sub" id="ppl-scope" style="margin:0"></span></div>
+      <div class="cols">
+        <div style="grid-column:1 / -1"><h3>買賣渠道</h3><div id="plist-chan"></div></div>
+        <div><h3>跟誰買（賣家）</h3><div id="plist-buy"></div></div>
+        <div><h3>賣給誰（買家）</h3><div id="plist-sell"></div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="history" aria-labelledby="his-h">
+      <div class="head">
+        <h2 id="his-h">交易紀錄</h2>
+        <button class="btn link" id="clear-ex" type="button" hidden>清除範例資料</button>
+        <button class="btn sm" id="bulk-done" type="button" hidden>全部標為已完成</button>
+      </div>
+      <div class="filters">
+        <input type="search" id="q" placeholder="搜尋小卡、賣家、買家、備註" aria-label="搜尋紀錄">
+        <select id="type-sel" aria-label="類型篩選">
+          <option value="all">全部類型</option>
+          <option value="buy">只看買入</option>
+          <option value="sell">只看賣出</option>
+        </select>
+        <select id="st-sel" aria-label="狀態篩選">
+          <option value="all">全部狀態</option>
+          <option value="pending">未完成（所有月份）</option>
+          <option value="done">已完成</option>
+        </select>
+      </div>
+      <div class="hint" id="hist-scope" style="margin:0 0 8px"></div>
+      <div id="rows"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var LS_KEY='pc-ledger-v1';
+var $=function(s){return document.querySelector(s)};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+var pad=function(n){return String(n).padStart(2,'0')};
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+var today=ymd(new Date());
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var money=function(n){return 'NT$ '+Math.round(n).toLocaleString('en-US')};
+var signed=function(n){var r=Math.round(n);return r>0?'+'+money(r):r<0?'−'+money(-r):money(0)};
+var monthLabel=function(ym){return ym.slice(0,4)+' 年 '+Number(ym.slice(5,7))+' 月'};
+var ymOf=function(s){return String(s||'').slice(0,7)};
+
+var MEMBERS=['莉','嫄','薛','裴','友','圭'];
+var CHANNELS=['KOCA','FB','LINE 社群','IG','蝦皮','面交'];
+var CT_LABEL={solo:'單人',group:'團卡',set:'整套'};
+var CT_FORM={solo:'單人卡',group:'團卡',set:'整套'};
+
+var state={entries:[],mode:'pending',slow:false,selMonth:today.slice(0,7),typeFilter:'all',statusFilter:'all',q:'',editingId:null,confirmId:null,lines:[],bulkConfirm:false,bulkIds:[],openVers:{}};
+var col=null, slowTimer=null, msgTimer=null;
+
+/* ---------- storage ---------- */
+function loadLocal(){
+  try{var raw=localStorage.getItem(LS_KEY);var a=raw?JSON.parse(raw):[];state.entries=Array.isArray(a)?a:[]}catch(e){state.entries=[]}
+  sortEntries();
+}
+function saveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify(state.entries))}catch(e){}}
+function sortEntries(){
+  state.entries.sort(function(a,b){
+    if(a.date!==b.date)return a.date<b.date?1:-1;
+    return String(b.createdAt||'')<String(a.createdAt||'')?-1:1;
+  });
+}
+function newId(){return col?col.doc().id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+async function persist(id,data){
+  if(state.mode==='cloud'){await col.doc(id).set(data);return}
+  var rec=Object.assign({id:id},data),i=state.entries.findIndex(function(e){return e.id===id});
+  if(i>=0)state.entries[i]=rec;else state.entries.push(rec);
+  sortEntries();saveLocal();renderAll();
+}
+async function remove(id){
+  if(state.mode==='cloud'){await col.doc(id).delete();return}
+  state.entries=state.entries.filter(function(e){return e.id!==id});saveLocal();renderAll();
+}
+async function setDone(id,val){
+  if(state.mode==='cloud'){await col.doc(id).update({done:val});return}
+  var e=state.entries.find(function(x){return x.id===id});
+  if(e){e.done=val;saveLocal();renderAll()}
+}
+function subscribe(){
+  slowTimer=setTimeout(function(){state.slow=true;renderStatus()},10000);
+  col.onSnapshot(function(snap){
+    state.entries=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())});
+    sortEntries();
+    if(!snap.metadata.fromCache){clearTimeout(slowTimer);state.slow=false}
+    renderAll();
+  },function(){
+    clearTimeout(slowTimer);state.slow=true;renderStatus();
+  });
+}
+async function init(){
+  state.mode='pending';renderAll();
+  var ok=false;
+  try{
+    var c=window.claude;
+    if(c&&c.use){
+      var res=await Promise.all([c.use('db'),c.use('user')]);
+      var db=res[0],user=res[1];
+      var uid=user?await user.id():null;
+      if(db&&uid){col=db.collection('data/users/'+uid);state.mode='cloud';subscribe();ok=true}
+    }
+  }catch(e){}
+  if(!ok){state.mode='local';loadLocal();renderAll()}
+}
+
+/* ---------- entry model ----------
+   An entry is one purchase or sale: shared fields + one or more card lines.
+   Older entries keep their card fields at the top level; linesOf() reads both shapes. */
+function isNmixxG(g){return String(g||'').trim().toLowerCase()==='nmixx'}
+function parseMembers(t){return String(t||'').split(/[、,，\s]+/).map(function(x){return x.trim()}).filter(Boolean)}
+function lineMembers(l){
+  if(Array.isArray(l.members)&&l.members.length)return l.members.map(function(x){return String(x).trim()}).filter(Boolean);
+  return parseMembers(l.member);
+}
+function normLine(l){
+  var ct=l.cardType==='group'?'group':l.cardType==='set'?'set':'solo';
+  var g=parseInt(l.setGroupQty,10);
+  return {
+    cardType:ct,
+    group:String(l.group||'').trim(),
+    members:ct==='solo'?lineMembers(l):[],
+    item:String(l.item||'').trim(),
+    qty:Math.max(1,parseInt(l.qty,10)||1),
+    setGroupQty:ct==='set'?(g>=1&&g<=3?g:1):0,
+    gname:ct==='solo'?'':String(l.gname||'').trim()
+  };
+}
+function linesOf(e){
+  if(Array.isArray(e.lines)&&e.lines.length)return e.lines.map(normLine);
+  return [normLine(e)];
+}
+function cardsOfLine(l){
+  return l.cardType==='set'?l.qty*(MEMBERS.length+l.setGroupQty):l.cardType==='solo'?l.qty*Math.max(1,l.members.length):l.qty;
+}
+function cardsOf(e){return linesOf(e).reduce(function(s,l){return s+cardsOfLine(l)},0)}
+function feeOf(e){return Math.max(0,Number(e.fee)||0)}
+function shipOf(e){return Math.max(0,Number(e.ship)||0)}
+function goodsOf(e){return Math.max(0,(Number(e.amount)||0)-feeOf(e)-shipOf(e))}
+function isDone(e){return !!e.done}
+function lineText(l){
+  var qty=l.cardType==='set'?'×'+l.qty+' 套':(l.cardType==='solo'&&l.members.length>1)?'×'+l.qty+' 張／位':'×'+l.qty+' 張';
+  var who;
+  if(l.cardType==='set')who=l.group+' 整套（'+MEMBERS.length+' 單人＋'+l.setGroupQty+' 團卡）';
+  else if(l.cardType==='group')who=l.group+' 團卡'+(l.gname&&l.gname!==l.item?'「'+l.gname+'」':'');
+  else who=[l.group,l.members.join('、')].filter(Boolean).join(' ');
+  return [who.trim(),l.item].filter(Boolean).join(' · ')+' '+qty;
+}
+
+/* ---------- aggregates ---------- */
+function agg(list){
+  var r={spend:0,sales:0,buyN:0,sellN:0,buyQty:0,sellQty:0};
+  list.forEach(function(e){
+    var a=Number(e.amount)||0,q=cardsOf(e);
+    if(e.type==='buy'){r.spend+=a;r.buyN++;r.buyQty+=q}else{r.sales+=a;r.sellN++;r.sellQty+=q}
+  });
+  return r;
+}
+function scoped(){
+  return state.selMonth==='all'?state.entries:state.entries.filter(function(e){return ymOf(e.date)===state.selMonth});
+}
+/* Expands an entry into per-card inventory lines. A set adds one card per member plus its group cards;
+   a group card is keyed by its group-card name so two versions can share one card. */
+function entryCardLines(e){
+  var ls=linesOf(e),total=cardsOf(e),unit=total?goodsOf(e)/total:0,out=[];
+  ls.forEach(function(l){
+    var g=l.group,it=l.item,q=l.qty;
+    if(l.cardType==='set'){
+      var gq=l.setGroupQty;
+      MEMBERS.forEach(function(m){out.push({g:g,ct:'solo',m:m,it:it,gn:'',q:q,cost:unit*q})});
+      out.push({g:g,ct:'group',m:'',it:it,gn:l.gname||it,q:q*gq,cost:unit*q*gq});
+    }else if(l.cardType==='group'){
+      out.push({g:g,ct:'group',m:'',it:it,gn:l.gname||it,q:q,cost:unit*q});
+    }else{
+      var ms=l.members.length?l.members:[''];
+      ms.forEach(function(m){out.push({g:g,ct:'solo',m:m,it:it,gn:'',q:q,cost:unit*q})});
+    }
+  });
+  return out;
+}
+function inventory(){
+  var m={};
+  state.entries.forEach(function(e){
+    entryCardLines(e).forEach(function(l){
+      var key=l.ct==='group'?[l.g.toLowerCase(),'group','',l.gn.toLowerCase()].join('|'):[l.g.toLowerCase(),'solo',l.m.toLowerCase(),l.it.toLowerCase()].join('|');
+      var o=m[key]||(m[key]={group:l.g,ct:l.ct,member:l.m,item:l.ct==='solo'?l.it:'',gname:l.gn,versions:{},bought:0,sold:0,spend:0});
+      if(l.it)o.versions[l.it.toLowerCase()]=l.it;
+      if(e.type==='buy'){o.bought+=l.q;o.spend+=l.cost}else{o.sold+=l.q}
+    });
+  });
+  return Object.keys(m).map(function(k){var o=m[k];o.left=o.bought-o.sold;return o});
+}
+function versionsList(){
+  var inv=inventory(),m={};
+  function ver(g,it){
+    var k=g.toLowerCase()+'|'+it.toLowerCase();
+    return m[k]||(m[k]={group:g,item:it,cells:{},gcells:[],bought:0,sold:0,spend:0});
+  }
+  inv.forEach(function(o){
+    if(o.ct!=='solo')return;
+    var v=ver(o.group,o.item),n=o.member||'（未填成員）';
+    v.cells[n]=(v.cells[n]||0)+o.left;v.bought+=o.bought;v.sold+=o.sold;v.spend+=o.spend;
+  });
+  inv.forEach(function(o){
+    if(o.ct!=='group')return;
+    var ks=Object.keys(o.versions),shared=ks.length>1;
+    if(!ks.length)ks=[''];
+    ks.forEach(function(k){
+      var it=k?o.versions[k]:'',v=ver(o.group,it);
+      var same=(o.gname||'').toLowerCase()===it.toLowerCase();
+      v.gcells.push({label:same?'團卡':'團卡·'+(o.gname||'未命名')+(shared?'（共用）':''),left:o.left,shared:shared,name:o.gname});
+      if(!shared){v.bought+=o.bought;v.sold+=o.sold;v.spend+=o.spend}
+    });
+  });
+  return Object.keys(m).map(function(k){
+    var v=m[k],nm=isNmixxG(v.group);
+    var names=nm?MEMBERS.slice():Object.keys(v.cells).sort();
+    Object.keys(v.cells).forEach(function(n){if(names.indexOf(n)<0)names.push(n)});
+    v.names=names;
+    var vals=names.map(function(n){return v.cells[n]||0}).concat(v.gcells.map(function(g){return g.left}));
+    v.total=vals.reduce(function(s,x){return s+x},0);
+    v.anyNeg=vals.some(function(x){return x<0});
+    v.anyPos=vals.some(function(x){return x>0});
+    v.sets=null;
+    if(nm){var mn=Math.min.apply(null,MEMBERS.map(function(x){return v.cells[x]||0}));v.sets=mn>0?mn:0}
+    return v;
+  }).sort(function(a,b){return (b.total-a.total)||((a.group+a.item)<(b.group+b.item)?-1:1)});
+}
+function monthsList(){
+  var set={};set[today.slice(0,7)]=1;
+  state.entries.forEach(function(e){var m=ymOf(e.date);if(m.length===7)set[m]=1});
+  return Object.keys(set).sort().reverse();
+}
+
+/* ---------- render ---------- */
+function renderStatus(){
+  var el=$('#status'),t=$('#status span');
+  var s=state.mode==='cloud'?(state.slow?'slow':'cloud'):state.mode;
+  el.dataset.s=s;
+  t.textContent=s==='cloud'?'已儲存到你的帳號，只有你看得到':s==='slow'?'暫時連不上，資料可能不是最新':s==='local'?'只存在這個瀏覽器':'連線中…';
+}
+function renderMonthSelect(){
+  var sel=$('#month-sel'),ms=monthsList();
+  if(state.selMonth!=='all'&&ms.indexOf(state.selMonth)<0)ms.unshift(state.selMonth);
+  sel.innerHTML='<option value="all">全部月份</option>'+ms.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+'</option>'}).join('');
+  sel.value=state.selMonth;
+}
+function renderTiles(){
+  var a=agg(scoped()),net=a.sales-a.spend;
+  var avg=a.buyQty?money(a.spend/a.buyQty)+' / 張':'—';
+  $('#tiles').innerHTML=
+    '<div class="tile"><div class="k"><b style="background:var(--buy)"></b>買入花費</div><div class="v num">'+money(a.spend)+'</div><div class="s">'+a.buyN+' 筆・'+a.buyQty+' 張</div></div>'+
+    '<div class="tile"><div class="k"><b style="background:var(--sell)"></b>賣出收入</div><div class="v num">'+money(a.sales)+'</div><div class="s">'+a.sellN+' 筆・'+a.sellQty+' 張</div></div>'+
+    '<div class="tile"><div class="k">收支淨額</div><div class="v num '+(net>0?'pos':net<0?'neg':'')+'">'+signed(net)+'</div><div class="s">賣出收入 − 買入花費（含包手費、運費）</div></div>'+
+    '<div class="tile"><div class="k">買入均價</div><div class="v num">'+avg+'</div><div class="s">買入花費 ÷ 張數</div></div>'+
+    stockTile()+pendTile();
+}
+function stockTile(){
+  var solo=0,grp=0;
+  inventory().forEach(function(o){if(o.left>0){if(o.ct==='group')grp+=o.left;else solo+=o.left}});
+  return '<div class="tile stock-tile"><div class="k">目前庫存</div><div class="v num">'+(solo+grp)+' 張</div><div class="s">單人 '+solo+'・團卡 '+grp+'（累計）</div></div>';
+}
+function pendTile(){
+  var r=0,s=0;
+  state.entries.forEach(function(e){if(!isDone(e)){if(e.type==='buy')r++;else s++}});
+  return '<div class="tile"><div class="k">待處理</div><div class="v num">'+(r+s)+' 筆</div><div class="s">待收貨 '+r+'・待出貨 '+s+'（所有月份）</div></div>';
+}
+/* KOCA 在售開價範圍（單張，不含整套／雙人／抽抽樂／專輯），2026/11/13 查詢，只是開價不是成交價 */
+var MKT_DATE='2026/11/13';
+var MKT={
+  rabbit:{'莉':[80,450,150],'嫄':[200,450,280],'薛':[170,450,320],'裴':[80,450,210],'友':[100,500,120],'圭':[100,450,165]},
+  fox:{'莉':[100,500,250],'嫄':[250,400,320],'薛':[360,500,420],'裴':[230,360,350],'友':[100,500,365]},
+  gyeong:{'莉':[160,180,170],'嫄':[200,300,250],'薛':[180,300,250],'裴':[180,240,210],'友':[160,240,200],'圭':[160,280,260]}
+};
+function mktOf(v,n){
+  var it=String(v.item||'');
+  if(!isNmixxG(v.group)||!/兔|狐|景福宮/.test(it))return null;
+  var k=/景福宮/.test(it)?'gyeong':/兔/.test(it)?'rabbit':/狐/.test(it)?'fox':null;
+  return k&&MKT[k][n]||null;
+}
+/* 團卡／雙人卡：景福宮 團卡與雙人同價；1.0 幸運卡雙人（莉嫄、裴佑、薛圭）最低 $150–170，上限只是大約 */
+function gmktOf(v){
+  var it=String(v.item||'');
+  if(!isNmixxG(v.group))return null;
+  if(/景福宮/.test(it))return [250,320,300];
+  if(/兔|狐/.test(it))return [150,260,200];
+  return null;
+}
+function invCell(n,c,mk){
+  return '<div class="'+(c<0?'over':c===0?'is0':'')+'"><div class="nm">'+esc(n)+'</div><div class="ct num'+(c===0?' zero':'')+'">'+c+'</div>'+''+'</div>';
+}
+function mktValue(v){
+  var lo=0,hi=0,md=0,any=false;
+  v.names.forEach(function(n){var c=v.cells[n]||0,m=mktOf(v,n);if(m&&c>0){lo+=c*m[0];hi+=c*m[1];md+=c*m[2];any=true}});
+  var gm=gmktOf(v);
+  if(gm)v.gcells.forEach(function(g){if(g.left>0){lo+=g.left*gm[0];hi+=g.left*gm[1];md+=g.left*gm[2];any=true}});
+  return any?{lo:lo,hi:hi,md:md}:null;
+}
+function renderInventoryValue(all){
+  var lo=0,hi=0,md=0,any=false;
+  all.forEach(function(v){var x=mktValue(v);if(x){lo+=x.lo;hi+=x.hi;md+=x.md;any=true}});
+  var el=$('#inv-value');
+  el.hidden=!any;
+  if(any)el.innerHTML='庫存估價（KOCA 開價中位數）：<b>'+money(md)+'</b>　範圍 '+money(lo)+'～'+money(hi)+'<br>只算查過價的版本；開價不等於成交價。';
+}
+function renderInventory(){
+  var all=versionsList();
+  
+  if(!all.length){$('#inv-rows').innerHTML='<p class="empty">新增買入或賣出後，這裡會依版本算出每位成員和團卡各剩幾張。</p>';return}
+  var only=$('#inv-only').checked;
+  var list=all.filter(function(v){return !only||v.anyPos||v.anyNeg});
+  if(!list.length){$('#inv-rows').innerHTML='<p class="empty">目前沒有有庫存的版本。取消「只顯示有庫存的版本」可以看到已售完的。</p>';return}
+  $('#inv-rows').innerHTML='<ul class="ver-list">'+list.map(function(v){
+    var title=v.item||'（未填版本）';
+    var avg=v.bought?money(v.spend/v.bought)+' / 張':'—';
+    var sub=esc(v.group||'（未填團體）')+'・買入 '+v.bought+'・賣出 '+v.sold+'・平均成本 '+avg;
+    var cells=v.names.map(function(n){return invCell(n,v.cells[n]||0,mktOf(v,n))}).join('')+v.gcells.map(function(g){return invCell(g.label,g.left,gmktOf(v))}).join('');
+    var badge=v.sets>0?'<span class="badge-cream">可湊齊 6 位成員 '+v.sets+' 套</span>':'';
+    var sharedNames=v.gcells.filter(function(g){return g.shared}).map(function(g){return '「'+(g.name||'未命名')+'」'});
+    var note=sharedNames.length?'<div class="ver-sub">團卡'+esc(sharedNames.join('、'))+'和其他版本共用，張數是共用後的合計；平均成本不含共用團卡。</div>':'';
+    var mv=mktValue(v),hasMk=v.names.some(function(n){return mktOf(v,n)})||(v.gcells.length&&gmktOf(v));
+    var mkNote='';
+    var warn=v.anyNeg?'<div class="ver-sub" style="color:var(--err)">有卡的賣出張數比買入多，請檢查紀錄。</div>':'';
+    var key=((v.group||'')+'|'+(v.item||'')).toLowerCase();
+    return '<li><details class="ver" data-k="'+esc(key)+'"'+(state.openVers[key]?' open':'')+'><summary><div class="ver-head"><div style="min-width:0"><div class="ver-name"><i class="chev"></i>'+esc(title)+'</div><div class="ver-sub">'+sub+'</div></div>'+
+      '<div class="ver-total"><span class="n num">'+v.total+'</span><span class="u">張餘量</span>'+(mv?'<span class="u val">約 '+money(mv.md)+'</span>':'')+'</div></div>'+badge+'</summary>'+
+      '<div class="ver-body"><div class="mem-sum">'+cells+'</div>'+mkNote+note+warn+'</div></details></li>';
+  }).join('')+'</ul>';
+}
+function renderMonthly(){
+  var map={};
+  state.entries.forEach(function(e){var m=ymOf(e.date);if(m.length!==7)return;(map[m]=map[m]||[]).push(e)});
+  var ms=Object.keys(map).sort().reverse();
+  if(!ms.length){$('#mlist').innerHTML='<p class="empty">新增紀錄後，這裡會列出每個月的花費與收入。</p>';return}
+  var rows=ms.map(function(m){return {m:m,a:agg(map[m])}});
+  var max=Math.max.apply(null,rows.map(function(r){return Math.max(r.a.spend,r.a.sales)}))||1;
+  var w=function(v){return v>0?Math.max(1.5,v/max*100):0};
+  $('#mlist').innerHTML='<div class="mlist">'+rows.map(function(r){
+    var net=r.a.sales-r.a.spend;
+    return '<button type="button" class="mrow" data-ym="'+r.m+'" aria-pressed="'+(state.selMonth===r.m)+'">'+
+      '<div class="m-head"><span>'+monthLabel(r.m)+'</span><span class="num '+(net>0?'pos':net<0?'neg':'')+'">淨 '+signed(net)+'</span></div>'+
+      '<div class="bline"><div class="track"><div class="bar buy" style="width:'+w(r.a.spend)+'%"></div></div><span class="num">'+money(r.a.spend)+'</span></div>'+
+      '<div class="bline"><div class="track"><div class="bar sell" style="width:'+w(r.a.sales)+'%"></div></div><span class="num">'+money(r.a.sales)+'</span></div>'+
+    '</button>';
+  }).join('')+'</div>';
+}
+function groupParties(list,type){
+  var m={};
+  list.forEach(function(e){
+    if(e.type!==type)return;
+    var k=String(e.party||'').trim()||'（未填）';
+    var o=m[k]||(m[k]={name:k,n:0,amt:0,qty:0});
+    o.n++;o.amt+=Number(e.amount)||0;o.qty+=cardsOf(e);
+  });
+  return Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return b.amt-a.amt});
+}
+function peopleHtml(list,type,emptyText){
+  var g=groupParties(list,type);
+  if(!g.length)return '<p class="empty">'+emptyText+'</p>';
+  var total=g.reduce(function(s,x){return s+x.amt},0)||1;
+  var top=g.slice(0,8),rest=g.slice(8);
+  var html='<ul class="plist">'+top.map(function(x){
+    return '<li><div class="p-top"><span>'+esc(x.name)+'</span><span class="num">'+money(x.amt)+'</span></div>'+
+      '<div class="p-sub">'+x.n+' 筆・'+x.qty+' 張</div>'+
+      '<div class="share"><div class="'+type+'" style="width:'+Math.max(2,x.amt/total*100)+'%"></div></div></li>';
+  }).join('')+'</ul>';
+  if(rest.length)html+='<p class="p-sub" style="margin:8px 0 0">其他 '+rest.length+' 位・'+money(rest.reduce(function(s,x){return s+x.amt},0))+'</p>';
+  return html;
+}
+function channelHtml(list){
+  var m={};
+  list.forEach(function(e){
+    var k=String(e.channel||'').trim()||'（未填）';
+    var o=m[k]||(m[k]={name:k,n:0,spend:0,sales:0});
+    o.n++;
+    if(e.type==='buy')o.spend+=Number(e.amount)||0;else o.sales+=Number(e.amount)||0;
+  });
+  var g=Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return (b.spend+b.sales)-(a.spend+a.sales)});
+  if(!g.length)return '<p class="empty">這段期間沒有紀錄。</p>';
+  return g.map(function(x){
+    return '<div class="chan"><div class="p-top"><span>'+esc(x.name)+'</span><span class="nums"><span class="num neg">買 '+money(x.spend)+'</span><span class="num pos">賣 '+money(x.sales)+'</span></span></div><div class="p-sub">'+x.n+' 筆</div></div>';
+  }).join('');
+}
+function renderPeople(){
+  var list=scoped();
+  $('#plist-chan').innerHTML=channelHtml(list);
+  $('#ppl-scope').textContent=state.selMonth==='all'?'全部月份':monthLabel(state.selMonth);
+  $('#plist-buy').innerHTML=peopleHtml(list,'buy','這段期間沒有買入紀錄。');
+  $('#plist-sell').innerHTML=peopleHtml(list,'sell','這段期間沒有賣出紀錄。');
+}
+function renderHistory(){
+  $('#bulk-done').hidden=true;state.bulkIds=[];
+  (function(){
+    var sc=$('#hist-scope');
+    if(state.statusFilter==='pending'||state.selMonth==='all'){sc.hidden=true;sc.innerHTML='';return}
+    sc.hidden=false;
+    sc.innerHTML='目前只顯示 <b>'+monthLabel(state.selMonth)+'</b> 的紀錄（跟上方月份連動）。<button type="button" class="btn link" id="all-months">看全部月份</button>';
+  })();
+  var hasEx=state.entries.some(function(e){return e.example});
+  $('#clear-ex').hidden=!hasEx;
+  if(!state.entries.length){
+    $('#rows').innerHTML='<p class="empty">還沒有任何紀錄。用左側（手機版在上方）的表單新增第一筆，或先載入範例看看畫面。</p><p style="margin:10px 0 0"><button class="btn" type="button" data-act="samples">載入範例資料</button></p>';
+    return;
+  }
+  var q=state.q.trim().toLowerCase();
+  var base=state.statusFilter==='pending'?state.entries:scoped();
+  var list=base.filter(function(e){
+    if(state.typeFilter!=='all'&&e.type!==state.typeFilter)return false;
+    if(state.statusFilter==='pending'&&isDone(e))return false;
+    if(state.statusFilter==='done'&&!isDone(e))return false;
+    if(!q)return true;
+    var hay=[e.party,e.note,e.channel].concat(linesOf(e).map(function(l){return [l.group,l.members.join(' '),l.item,l.gname].join(' ')})).join(' ').toLowerCase();
+    return hay.indexOf(q)>=0;
+  });
+  if(!list.length){$('#rows').innerHTML='<p class="empty">'+(state.statusFilter==='pending'?'沒有未完成的紀錄。':'這個月份沒有符合的紀錄。')+'</p>';return}
+  if(state.statusFilter==='pending'){
+    state.bulkIds=list.map(function(e){return e.id});
+    var bb=$('#bulk-done');bb.hidden=false;
+    bb.textContent=state.bulkConfirm?'再按一次確認：'+list.length+' 筆都標為已完成':'全部標為已完成（'+list.length+' 筆）';
+  }
+  $('#rows').innerHTML='<ul class="rows">'+list.map(function(e){
+    var buy=e.type==='buy',amt=Number(e.amount)||0,fee=feeOf(e),done=isDone(e);
+    var items=linesOf(e).map(function(l,i){
+      return '<div class="r-item">'+(i===0?'<span class="tag '+e.type+'">'+(buy?'買入':'賣出')+'</span>'+(e.example?'<span class="tag ex">範例</span>':''):'')+
+        '<span class="tag '+(l.cardType==='solo'?'solo':'grp')+'">'+CT_LABEL[l.cardType]+'</span>'+esc(lineText(l))+'</div>';
+    }).join('');
+    var sub=(e.channel?esc(e.channel)+'・':'')+(buy?'賣家 ':'買家 ')+esc(e.party||'（未填）')+'・共 '+cardsOf(e)+' 張'+(fee?'・含包手 '+money(fee):'')+(shipOf(e)?'・運費 '+money(shipOf(e)):'')+(e.note?'・'+esc(e.note):'');
+    var stLabel=buy?(done?'已收貨':'未收貨'):(done?'已出貨':'未出貨');
+    var stTip=buy?(done?'點一下改回未收貨':'點一下標記為已收貨'):(done?'點一下改回未出貨':'點一下標記為已出貨');
+    var act='<button type="button" class="stat-b" data-act="done" data-id="'+esc(e.id)+'" aria-pressed="'+done+'" title="'+stTip+'">'+stLabel+'</button>'+
+      (state.confirmId===e.id
+        ?'<span class="confirm">確定刪除這筆？<button type="button" class="btn danger" data-act="del-yes" data-id="'+esc(e.id)+'">刪除</button><button type="button" class="btn sm" data-act="del-no">取消</button></span>'
+        :'<button type="button" class="btn link" data-act="edit" data-id="'+esc(e.id)+'">編輯</button><button type="button" class="btn link" data-act="del" data-id="'+esc(e.id)+'">刪除</button>');
+    return '<li class="row"><div class="r-date num">'+esc(String(e.date).slice(5).replace('-','/'))+'</div>'+
+      '<div class="r-main">'+items+'<div class="r-sub">'+sub+'</div></div>'+
+      '<div class="r-amt num '+e.type+'">'+(buy?'−':'+')+money(amt)+'</div>'+
+      '<div class="r-act">'+act+'</div></li>';
+  }).join('')+'</ul>';
+}
+function renderDatalist(){
+  var kind=getKind(),seen={},out=[];
+  state.entries.forEach(function(e){
+    var p=String(e.party||'').trim();
+    if(e.type===kind&&p&&!seen[p]){seen[p]=1;out.push(p)}
+  });
+  $('#party-list').innerHTML=out.slice(0,50).map(function(p){return '<option value="'+esc(p)+'">'}).join('');
+}
+function renderCardLists(){
+  var gs={},ms={},its=[],seenI={},gns=[],seenG={};
+  state.entries.forEach(function(e){linesOf(e).forEach(function(l){
+    if(l.group)gs[l.group]=1;
+    l.members.forEach(function(m){ms[m]=1});
+    if(l.item&&!seenI[l.item.toLowerCase()]){seenI[l.item.toLowerCase()]=1;its.push(l.item)}
+    if(l.gname&&!seenG[l.gname.toLowerCase()]){seenG[l.gname.toLowerCase()]=1;gns.push(l.gname)}
+  })});
+  var opt=function(arr){return arr.slice(0,80).map(function(k){return '<option value="'+esc(k)+'">'}).join('')};
+  $('#group-list').innerHTML=opt(Object.keys(gs));
+  $('#member-list').innerHTML=opt(Object.keys(ms));
+  $('#item-list').innerHTML=opt(its);
+  $('#gname-list').innerHTML=opt(gns);
+}
+function renderAll(){
+  renderStatus();renderMonthSelect();renderTiles();renderInventory();renderMonthly();renderPeople();renderHistory();renderDatalist();renderCardLists();
+  if(linesEl)state.lines.forEach(function(l,i){refreshItemChips(i)});
+}
+
+/* ---------- form ---------- */
+var form=$('#entry-form');
+var linesEl=$('#lines');
+function getKind(){return $('#k-sell').checked?'sell':'buy'}
+function newLine(prev){return {ct:'solo',group:prev?prev.group:'NMIXX',members:[],memberText:'',item:'',qty:1,setg:1,gname:''}}
+function inMembers(m){return MEMBERS.indexOf(m)>=0}
+function lineCardsForm(l){
+  var q=parseInt(l.qty,10)||1;
+  return l.ct==='set'?q*(MEMBERS.length+(parseInt(l.setg,10)||1)):l.ct==='solo'?q*Math.max(1,l.members.length):q;
+}
+function memberAreaHtml(i,l){
+  if(l.ct!=='solo')return '';
+  var id='l'+i+'-',h='<span class="lbl" id="'+id+'mlabel">成員（可複選）</span>';
+  if(isNmixxG(l.group)){
+    var all=MEMBERS.every(function(m){return l.members.indexOf(m)>=0});
+    h+='<div class="chips" role="group" aria-labelledby="'+id+'mlabel">'+MEMBERS.map(function(m){
+      return '<button type="button" class="chip-b" data-member="'+m+'" aria-pressed="'+(l.members.indexOf(m)>=0)+'">'+m+'</button>';
+    }).join('')+'<button type="button" class="chip-b" data-member="__all" aria-pressed="'+all+'">全選</button></div>';
+  }else{
+    h+='<input type="text" id="'+id+'member" data-f="memberText" list="member-list" placeholder="例：成員名字，多位用頓號分隔" maxlength="80" value="'+esc(l.memberText)+'" aria-labelledby="'+id+'mlabel">';
+  }
+  return h;
+}
+function itemChipsHtml(l){
+  var g=String(l.group||'').trim().toLowerCase(),seen={},out=[];
+  state.entries.forEach(function(e){linesOf(e).forEach(function(x){
+    if(!x.item)return;
+    if(g&&x.group.toLowerCase()!==g)return;
+    var k=x.item.toLowerCase();if(seen[k])return;seen[k]=1;out.push(x.item);
+  })});
+  var cur=String(l.item||'').trim().toLowerCase();
+  return out.slice(0,8).map(function(k){
+    return '<button type="button" class="chip-b" data-item="'+esc(k)+'" aria-pressed="'+(cur===k.toLowerCase())+'">'+esc(k)+'</button>';
+  }).join('');
+}
+function lineHtml(i,l){
+  var id='l'+i+'-';
+  var h='<div class="line" data-i="'+i+'"><div class="line-head"><b>卡片 '+(i+1)+'</b><span class="line-acts"><button type="button" class="btn link" data-lact="dup">複製這項</button>'+(state.lines.length>1?'<button type="button" class="btn link" data-lact="rm">移除</button>':'')+'</span></div>';
+  h+='<div class="seg seg-ct" role="radiogroup" aria-label="卡種">'+['solo','group','set'].map(function(k){
+    return '<input type="radio" name="ct'+i+'" id="'+id+'ct-'+k+'" value="'+k+'"'+(l.ct===k?' checked':'')+'><label for="'+id+'ct-'+k+'">'+CT_FORM[k]+'</label>';
+  }).join('')+'</div>';
+  h+='<div><label class="f" for="'+id+'group">團體</label><input type="text" id="'+id+'group" data-f="group" list="group-list" placeholder="例：NMIXX" maxlength="60" value="'+esc(l.group)+'"></div>';
+  h+='<div class="mem-area">'+memberAreaHtml(i,l)+'</div>';
+  if(l.ct==='set'){
+    h+='<div><label class="f" for="'+id+'setg">每套附幾張團卡</label><select id="'+id+'setg" data-f="setg" style="width:100%">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+((parseInt(l.setg,10)||1)===n?' selected':'')+'>'+n+' 張團卡</option>'}).join('')+'</select></div>';
+  }
+  if(l.ct!=='solo'){
+    h+='<div><label class="f" for="'+id+'gname">團卡名稱（選填）</label><input type="text" id="'+id+'gname" data-f="gname" list="gname-list" placeholder="不填就沿用版本名稱" maxlength="60" value="'+esc(l.gname)+'"><p class="hint">兩個版本（例如兔子版和狐狸版）附的是同一張團卡時，兩邊填一樣的名稱，庫存就會合併計算。</p></div>';
+  }
+  h+='<div><label class="f" for="'+id+'item">版本／卡面</label><div class="chips item-chips" role="group" aria-label="最近用過的版本">'+itemChipsHtml(l)+'</div><input type="text" id="'+id+'item" data-f="item" list="item-list" placeholder="例：兔子 ver.（輸入過的會出現在下拉選單）" maxlength="120" value="'+esc(l.item)+'"></div>';
+  h+='<div><label class="f" for="'+id+'qty">'+(l.ct==='set'?'套數':l.ct==='solo'?'張數（每位成員）':'張數')+'</label><input type="number" id="'+id+'qty" data-f="qty" min="1" step="1" inputmode="numeric" value="'+esc(l.qty)+'"></div>';
+  h+='<p class="hint line-hint"></p></div>';
+  return h;
+}
+function lineEl(i){return linesEl.querySelector('.line[data-i="'+i+'"]')}
+function renderLines(){
+  linesEl.innerHTML=state.lines.map(function(l,i){return lineHtml(i,l)}).join('');
+  refreshHints();
+}
+function refreshMem(i){var w=lineEl(i);if(w)w.querySelector('.mem-area').innerHTML=memberAreaHtml(i,state.lines[i])}
+function refreshItemChips(i){var w=lineEl(i);if(w&&state.lines[i])w.querySelector('.item-chips').innerHTML=itemChipsHtml(state.lines[i])}
+function refreshHints(){
+  var total=0;
+  state.lines.forEach(function(l,i){
+    var w=lineEl(i);if(!w)return;
+    var n=lineCardsForm(l),q=parseInt(l.qty,10)||1,txt;
+    total+=n;
+    if(l.ct==='set'){
+      var gq=parseInt(l.setg,10)||1;
+      txt=isNmixxG(l.group)?'每套 '+MEMBERS.length+' 張單人卡（'+MEMBERS.join('、')+' 各 1 張）＋ '+gq+' 張團卡，共 '+n+' 張。':'整套目前只支援 NMIXX，團體請填 NMIXX。';
+    }else if(l.ct==='solo'){
+      txt=l.members.length?'已選 '+l.members.length+' 位成員 × 每位 '+q+' 張 ＝ '+n+' 張。':'請選擇成員，可以複選。';
+    }else txt='團卡 '+n+' 張。';
+    var h=w.querySelector('.line-hint');if(h)h.textContent=txt;
+  });
+  var goods=Number($('#f-amount').value)||0,fee=Number($('#f-fee').value)||0,ship=getKind()==='buy'?(Number($('#f-ship').value)||0):0;
+  var parts=[];if(fee)parts.push('包手 '+money(fee));if(ship)parts.push('運費 '+money(ship));
+  $('#tot-hint').textContent='這筆共 '+total+' 張；總額 '+money(goods+fee+ship)+(parts.length?'（卡片 '+money(goods)+' ＋ '+parts.join(' ＋ ')+'）':'')+(goods&&total?'；卡片平均每張 '+money(goods/total):'')+'。';
+  $('#fee-chip').setAttribute('aria-pressed',String(fee===20));
+  $$('#ship-chips button').forEach(function(b){b.setAttribute('aria-pressed',String(ship>0&&ship===Number(b.dataset.ship)))});
+}
+function renderChannelChips(){
+  var ch=$('#f-channel').value.trim().toLowerCase();
+  $('#channel-chips').innerHTML=CHANNELS.map(function(c){return '<button type="button" class="chip-b" data-channel="'+esc(c)+'" aria-pressed="'+(ch===c.toLowerCase())+'">'+esc(c)+'</button>'}).join('');
+}
+function syncFormMode(){
+  var k=getKind(),editing=!!state.editingId;
+  form.dataset.mode=k;
+  $('#party-label').textContent=k==='buy'?'賣家':'買家';
+  $('#ship-wrap').hidden=k!=='buy';
+  refreshHints();
+  $('#done-label').textContent=k==='buy'?'已收貨':'已出貨';
+  $('#done-hint').textContent=k==='buy'?'還沒收到貨就先不勾，收到後在交易紀錄裡點一下就能標記。':'還沒寄出就先不勾，寄出後在交易紀錄裡點一下就能標記。';
+  $('#submit').textContent=editing?'儲存修改':(k==='buy'?'新增買入':'新增賣出');
+  $('#cancel-edit').hidden=!editing;
+  $('#form-h').textContent=editing?'編輯紀錄':'新增紀錄';
+  renderDatalist();
+}
+function say(text,isErr){
+  var m=$('#msg');m.textContent=text;m.className=isErr?'err':'';
+  clearTimeout(msgTimer);
+  if(text)msgTimer=setTimeout(function(){m.textContent='';m.className=''},4500);
+}
+function resetForm(){
+  state.editingId=null;
+  $('#f-party').value='';$('#f-channel').value='';$('#f-amount').value='';$('#f-fee').value='';$('#f-ship').value='';$('#f-note').value='';$('#f-done').checked=false;
+  state.lines=[newLine()];renderLines();renderChannelChips();syncFormMode();
+}
+function focusId(id){var el=document.getElementById(id);if(el)el.focus()}
+
+function onLineField(ev){
+  var t=ev.target,f=t.dataset&&t.dataset.f;if(!f)return;
+  var w=t.closest('.line');if(!w)return;
+  var i=parseInt(w.dataset.i,10),l=state.lines[i];if(!l)return;
+  if(f==='group'){
+    var was=isNmixxG(l.group);l.group=t.value;var now=isNmixxG(l.group);
+    if(was!==now){
+      if(now)l.members=l.members.filter(inMembers);else l.memberText=l.members.join('、');
+      refreshMem(i);
+    }
+    refreshItemChips(i);
+  }else if(f==='memberText'){l.memberText=t.value;l.members=parseMembers(t.value)}
+  else if(f==='item'){l.item=t.value;refreshItemChips(i)}
+  else if(f==='qty'){l.qty=t.value}
+  else if(f==='gname'){l.gname=t.value}
+  else if(f==='setg'){l.setg=parseInt(t.value,10)||1}
+  refreshHints();
+}
+linesEl.addEventListener('input',onLineField);
+linesEl.addEventListener('change',function(ev){
+  var t=ev.target;
+  if(t.type==='radio'){
+    var w=t.closest('.line');if(!w)return;
+    var i=parseInt(w.dataset.i,10);
+    state.lines[i].ct=t.value;renderLines();focusId('l'+i+'-ct-'+t.value);return;
+  }
+  onLineField(ev);
+});
+linesEl.addEventListener('click',function(ev){
+  var b=ev.target.closest('button');if(!b)return;
+  var w=b.closest('.line');if(!w)return;
+  var i=parseInt(w.dataset.i,10),l=state.lines[i];if(!l)return;
+  if(b.hasAttribute('data-member')){
+    var m=b.dataset.member;
+    if(m==='__all'){l.members=MEMBERS.every(function(x){return l.members.indexOf(x)>=0})?[]:MEMBERS.slice()}
+    else{var k=l.members.indexOf(m);if(k>=0)l.members.splice(k,1);else l.members.push(m)}
+    refreshMem(i);refreshHints();
+    var again=lineEl(i).querySelector('[data-member="'+m+'"]');if(again)again.focus();
+    return;
+  }
+  if(b.hasAttribute('data-item')){
+    var v=b.dataset.item;
+    l.item=String(l.item).trim().toLowerCase()===v.toLowerCase()?'':v;
+    var inp=document.getElementById('l'+i+'-item');if(inp)inp.value=l.item;
+    refreshItemChips(i);refreshHints();return;
+  }
+  if(b.dataset.lact==='rm'){state.lines.splice(i,1);renderLines();return}
+  if(b.dataset.lact==='dup'){
+    var c=JSON.parse(JSON.stringify(l));c.item='';
+    state.lines.splice(i+1,0,c);renderLines();focusId('l'+(i+1)+'-item');
+  }
+});
+$('#add-line').addEventListener('click',function(){
+  state.lines.push(newLine(state.lines[state.lines.length-1]));
+  renderLines();
+  var n=state.lines.length-1,w=lineEl(n);
+  if(w&&w.scrollIntoView)w.scrollIntoView({block:'nearest'});
+  focusId('l'+n+'-ct-solo');
+});
+document.querySelectorAll('input[name="kind"]').forEach(function(r){r.addEventListener('change',syncFormMode)});
+$('#f-channel').addEventListener('input',renderChannelChips);
+$('#channel-chips').addEventListener('click',function(ev){
+  var b=ev.target.closest('button[data-channel]');if(!b)return;
+  var c=b.dataset.channel;
+  $('#f-channel').value=$('#f-channel').value.trim().toLowerCase()===c.toLowerCase()?'':c;
+  renderChannelChips();
+  var again=Array.prototype.find.call($('#channel-chips').querySelectorAll('button'),function(x){return x.dataset.channel===c});if(again)again.focus();
+});
+$('#f-amount').addEventListener('input',refreshHints);
+$('#f-fee').addEventListener('input',refreshHints);
+$('#f-ship').addEventListener('input',refreshHints);
+$('#ship-chips').addEventListener('click',function(ev){
+  var b=ev.target.closest('button[data-ship]');if(!b)return;
+  var v=Number(b.dataset.ship);
+  $('#f-ship').value=(Number($('#f-ship').value)||0)===v?'':String(v);
+  refreshHints();b.focus();
+});
+$('#fee-chip').addEventListener('click',function(){
+  $('#f-fee').value=(Number($('#f-fee').value)||0)===20?'':'20';
+  refreshHints();
+});
+$('#inv-only').addEventListener('change',renderInventory);
+$('#f-date').value=today;
+$('#cancel-edit').addEventListener('click',function(){resetForm();say('')});
+
+form.addEventListener('submit',async function(ev){
+  ev.preventDefault();
+  if(state.mode==='pending'){say('還在連線，請稍等一下再儲存。',true);return}
+  var kind=getKind();
+  var party=$('#f-party').value.trim(),note=$('#f-note').value.trim(),channel=$('#f-channel').value.trim();
+  var date=$('#f-date').value||today;
+  if(!channel){say('請選擇或輸入買賣渠道。',true);$('#f-channel').focus();return}
+  if(!party){say('請填寫'+(kind==='buy'?'賣家':'買家')+'。',true);$('#f-party').focus();return}
+  var lines=[];
+  for(var i=0;i<state.lines.length;i++){
+    var l=state.lines[i],no=state.lines.length>1?'卡片 '+(i+1)+'：':'',g=String(l.group).trim();
+    if(!g){say(no+'請填寫團體，庫存才算得準。',true);focusId('l'+i+'-group');return}
+    if(l.ct==='set'&&!isNmixxG(g)){say(no+'整套目前只支援 NMIXX（6 位成員），團體請填 NMIXX。',true);focusId('l'+i+'-group');return}
+    var ms=l.ct==='solo'?(isNmixxG(g)?MEMBERS.filter(function(m){return l.members.indexOf(m)>=0}):l.members.slice()):[];
+    if(l.ct==='solo'&&!ms.length){say(no+'單人卡請選擇成員（可以複選）。',true);return}
+    var q=parseInt(l.qty,10);if(!q||q<1)q=1;
+    lines.push({cardType:l.ct,group:g,members:ms,item:String(l.item).trim(),qty:q,setGroupQty:l.ct==='set'?(parseInt(l.setg,10)||1):0,gname:l.ct==='solo'?'':String(l.gname).trim()});
+  }
+  var amountRaw=$('#f-amount').value,goods=Number(amountRaw),fee=Number($('#f-fee').value)||0,ship=kind==='buy'?(Number($('#f-ship').value)||0):0;
+  if(amountRaw===''||!isFinite(goods)||goods<0){say('請填寫卡片金額（0 以上的數字）。',true);$('#f-amount').focus();return}
+  if(fee<0)fee=0;
+  if(ship<0)ship=0;
+  var editing=state.editingId,old=editing?state.entries.find(function(e){return e.id===editing}):null;
+  var data={type:kind,date:date,channel:channel,party:party,lines:lines,fee:fee,ship:ship,amount:goods+fee+ship,note:note,done:$('#f-done').checked,example:false,createdAt:old&&old.createdAt?old.createdAt:new Date().toISOString()};
+  var btn=$('#submit');btn.disabled=true;
+  try{
+    await persist(editing||newId(),data);
+    if(state.selMonth!=='all'&&ymOf(date)!==state.selMonth){state.selMonth=ymOf(date);renderAll()}
+    say(editing?'已更新。':'已新增。');
+    var lastGroup=state.lines[state.lines.length-1];
+    state.editingId=null;
+    $('#f-amount').value='';$('#f-fee').value='';$('#f-ship').value='';$('#f-note').value='';$('#f-done').checked=false;
+    state.lines=[newLine(lastGroup)];renderLines();syncFormMode();renderCardLists();
+    focusId('l0-ct-solo');
+  }catch(e){
+    say('儲存失敗，請稍後再試。',true);
+  }finally{btn.disabled=false}
+});
+
+/* ---------- list actions ---------- */
+$('#rows').addEventListener('click',async function(ev){
+  var b=ev.target.closest('button[data-act]');if(!b)return;
+  var act=b.dataset.act,id=b.dataset.id;
+  if(act==='samples'){await addSamples();return}
+  if(act==='done'){
+    var en=state.entries.find(function(x){return x.id===id});if(!en)return;
+    try{await setDone(id,!isDone(en))}catch(e){say('更新狀態失敗，請稍後再試。',true)}
+    return;
+  }
+  if(act==='del'){state.confirmId=id;renderHistory();return}
+  if(act==='del-no'){state.confirmId=null;renderHistory();return}
+  if(act==='del-yes'){
+    state.confirmId=null;
+    try{await remove(id)}catch(e){say('刪除失敗，請稍後再試。',true)}
+    renderHistory();return;
+  }
+  if(act==='edit'){
+    var e=state.entries.find(function(x){return x.id===id});if(!e)return;
+    state.editingId=id;
+    $(e.type==='sell'?'#k-sell':'#k-buy').checked=true;
+    $('#f-date').value=e.date||today;$('#f-channel').value=e.channel||'';$('#f-party').value=e.party||'';
+    state.lines=linesOf(e).map(function(l){return {ct:l.cardType,group:l.group,members:l.members.slice(),memberText:l.members.join('、'),item:l.item,qty:l.qty,setg:l.setGroupQty||1,gname:l.gname}});
+    $('#f-amount').value=goodsOf(e);$('#f-fee').value=feeOf(e)||'';$('#f-ship').value=shipOf(e)||'';$('#f-note').value=e.note||'';$('#f-done').checked=isDone(e);
+    renderLines();renderChannelChips();syncFormMode();say('');
+    var fp=$('#form-panel');if(fp.scrollIntoView)fp.scrollIntoView({block:'start'});$('#f-party').focus({preventScroll:true});
+  }
+});
+$('#mlist').addEventListener('click',function(ev){
+  var b=ev.target.closest('button[data-ym]');if(!b)return;
+  state.selMonth=state.selMonth===b.dataset.ym?'all':b.dataset.ym;renderAll();
+});
+$('#hist-scope').addEventListener('click',function(ev){if(ev.target.id==='all-months'){state.selMonth='all';renderAll()}});
+$('#inv-rows').addEventListener('toggle',function(ev){var d=ev.target;if(d&&d.tagName==='DETAILS'&&d.dataset.k!==undefined){if(d.open)state.openVers[d.dataset.k]=1;else delete state.openVers[d.dataset.k]}},true);
+$('#inv-open').addEventListener('click',function(){$$('#inv-rows details.ver').forEach(function(d){d.open=true;state.openVers[d.dataset.k]=1})});
+$('#inv-close').addEventListener('click',function(){state.openVers={};$$('#inv-rows details.ver').forEach(function(d){d.open=false})});
+$('#month-sel').addEventListener('change',function(ev){state.selMonth=ev.target.value;renderAll()});
+$('#type-sel').addEventListener('change',function(ev){state.typeFilter=ev.target.value;state.bulkConfirm=false;renderHistory()});
+$('#st-sel').addEventListener('change',function(ev){state.statusFilter=ev.target.value;state.bulkConfirm=false;renderHistory()});
+$('#q').addEventListener('input',function(ev){state.q=ev.target.value;state.bulkConfirm=false;renderHistory()});
+$('#bulk-done').addEventListener('click',async function(){
+  if(!state.bulkConfirm){state.bulkConfirm=true;renderHistory();return}
+  state.bulkConfirm=false;
+  var ids=state.bulkIds.slice(),n=0;
+  try{
+    for(var i=0;i<ids.length;i++){
+      var en=state.entries.find(function(x){return x.id===ids[i]});
+      if(en&&!isDone(en)){await setDone(ids[i],true);n++}
+    }
+    say('已把 '+n+' 筆標為已完成。');
+  }catch(e){say('更新狀態失敗，請稍後再試。',true)}
+  renderHistory();
+});
+
+async function addSamples(){
+  if(state.mode==='pending'){say('還在連線，請稍等一下。',true);return}
+  var d=function(off){var x=new Date();x.setDate(x.getDate()-off);return ymd(x)};
+  var L=function(ct,o){return Object.assign({cardType:ct,group:'NMIXX',members:[],item:'',qty:1,setGroupQty:0,gname:''},o)};
+  var rows=[
+    {type:'buy',date:d(1),channel:'KOCA',party:'範例賣家 A',lines:[L('set',{item:'兔子 ver.',setGroupQty:1,gname:'兔狐團卡'}),L('set',{item:'狐狸 ver.',setGroupQty:1,gname:'兔狐團卡'})],fee:20,amount:1520,note:'兩款整套一起買，團卡是同一張',done:false},
+    {type:'buy',date:d(3),channel:'FB',party:'範例賣家 B',lines:[L('solo',{members:['莉','嫄'],item:'兔子 ver.'})],fee:0,amount:300,note:'面交',done:true},
+    {type:'sell',date:d(5),channel:'LINE 社群',party:'範例買家 C',lines:[L('solo',{members:['莉'],item:'兔子 ver.'})],fee:20,amount:240,note:'',done:false},
+    {type:'buy',date:d(34),channel:'KOCA',party:'範例賣家 A',lines:[L('group',{item:'星空 ver.',qty:3})],fee:0,amount:300,note:'含運',done:true},
+    {type:'sell',date:d(38),channel:'FB',party:'範例買家 D',lines:[L('solo',{members:['莉'],item:'狐狸 ver.'})],fee:0,amount:200,note:'',done:true}
+  ];
+  try{
+    for(var i=0;i<rows.length;i++){
+      await persist(newId(),Object.assign({example:true,createdAt:new Date(Date.now()+i).toISOString()},rows[i]));
+    }
+  }catch(e){say('載入範例失敗，請稍後再試。',true)}
+}
+$('#clear-ex').addEventListener('click',async function(){
+  var ids=state.entries.filter(function(e){return e.example}).map(function(e){return e.id});
+  try{for(var i=0;i<ids.length;i++)await remove(ids[i]);say('已清除範例資料。')}catch(e){say('清除失敗，請稍後再試。',true)}
+});
+
+/* ---------- export ---------- */
+$('#export').addEventListener('click',async function(){
+  if(!state.entries.length){say('目前沒有可以匯出的紀錄。',true);return}
+  var cell=function(v){var s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  var lines=[['日期','類型','狀態','渠道','賣家/買家','卡片明細','總張數','卡片金額(NT$)','包手費(NT$)','運費(NT$)','總金額(NT$)','備註'].join(',')];
+  state.entries.slice().sort(function(a,b){return a.date<b.date?-1:1}).forEach(function(e){
+    var buy=e.type==='buy',done=isDone(e);
+    lines.push([e.date,buy?'買入':'賣出',buy?(done?'已收貨':'未收貨'):(done?'已出貨':'未出貨'),e.channel,e.party,linesOf(e).map(lineText).join('；'),cardsOf(e),goodsOf(e),feeOf(e),shipOf(e),e.amount,e.note].map(cell).join(','));
+  });
+  try{
+    var dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
+    var csv='﻿'+lines.join('\n'),fname='小卡帳本-'+today+'.csv';
+    if(!dl){
+      var bl=new Blob([csv],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(bl),a=document.createElement('a');
+      a.href=u;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(u)},1000);
+    }else{
+      await dl.save({filename:fname,data:csv});
+    }
+    say('已匯出。');
+  }catch(e){
+    if(e&&e.code!=='declined')say('匯出失敗，請稍後再試。',true);
+  }
+});
+
+state.lines=[newLine()];
+renderLines();renderChannelChips();syncFormMode();
+init();
+})();
+</script>
+</body></html>
