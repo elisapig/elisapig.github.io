@@ -185,6 +185,9 @@ form[data-mode="sell"]{--mode:var(--sell);--on-mode:var(--on-sell)}
     <div class="top-r">
       <span class="chip" id="status" data-s="pending"><i></i><span>連線中…</span></span>
       <button class="btn" id="export" type="button">匯出 CSV</button>
+      <button class="btn" id="bk-out" type="button">備份 JSON</button>
+      <button class="btn" id="bk-in" type="button">匯入備份</button>
+      <input type="file" id="bk-file" accept=".json,application/json" hidden>
     </div>
   </header>
 
@@ -1087,6 +1090,36 @@ $('#export').addEventListener('click',async function(){
   }catch(e){
     if(e&&e.code!=='declined')say('匯出失敗，請稍後再試。',true);
   }
+});
+
+
+/* GitHub 版：備份與匯入（資料只存在這個瀏覽器，用 JSON 搬家） */
+$('#bk-out').addEventListener('click',function(){
+  if(!state.entries.length){say('目前沒有可以備份的紀錄。',true);return}
+  var bl=new Blob([JSON.stringify(state.entries)],{type:'application/json'}),u=URL.createObjectURL(bl),a=document.createElement('a');
+  a.href=u;a.download='小卡帳本備份-'+today+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(u)},1000);say('已下載備份檔。');
+});
+$('#bk-in').addEventListener('click',function(){$('#bk-file').click()});
+$('#bk-file').addEventListener('change',function(ev){
+  var f=ev.target.files&&ev.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var a=JSON.parse(String(r.result||'[]'));
+      if(!Array.isArray(a))throw new Error('x');
+      var n=0;
+      a.forEach(function(o){
+        if(!o||typeof o!=='object'||!o.id||!o.date||!o.type)return;
+        var i=state.entries.findIndex(function(e){return e.id===o.id});
+        if(i>=0)state.entries[i]=o;else state.entries.push(o);
+        n++;
+      });
+      sortEntries();saveLocal();renderAll();say('已匯入 '+n+' 筆紀錄。');
+    }catch(e){say('這個檔案看不懂，請選之前備份的 JSON 檔。',true)}
+    ev.target.value='';
+  };
+  r.readAsText(f);
 });
 
 state.lines=[newLine()];
